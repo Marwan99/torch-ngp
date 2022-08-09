@@ -935,6 +935,40 @@ class Trainer(object):
 
         self.log(f"++> Evaluate epoch {self.epoch} Finished.")
 
+    # def render_at(self, loader):
+    def render_at(self, rays, H, W):
+
+        self.model.eval()
+
+        with torch.no_grad():
+            with torch.cuda.amp.autocast(enabled=self.fp16):
+                rays_o = rays['rays_o'] # [B, N, 3]
+                rays_d = rays['rays_d'] # [B, N, 3]
+
+                outputs = self.model.render(rays_o,
+                                            rays_d,
+                                            staged=True,
+                                            bg_color=1,  # eval with fixed background color
+                                            perturb=False,
+                                            **vars(self.opt))
+
+                pred_rgb = outputs['image'].reshape(1, H, W, 3)
+                pred_depth = outputs['depth'].reshape(1, H, W)
+
+                plt.subplots(figsize=(15, 12))
+                plt.tight_layout()
+                plt.subplot(221)
+                plt.title('pred')
+                pred = pred_rgb.reshape(H, W, 3).cpu().numpy()
+                plt.imshow(pred)
+                plt.subplot(222)
+                plt.title('depth')
+                depth = pred_depth.reshape(H, W).cpu().numpy()
+                # depth_ = depth2img(depth)
+                plt.imshow(depth)
+                plt.show()
+
+
     def save_checkpoint(self, name=None, full=False, best=False, remove_old=True):
 
         if name is None:
