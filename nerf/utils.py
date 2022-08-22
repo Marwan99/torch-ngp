@@ -545,13 +545,21 @@ class Trainer(object):
                     sigma = self.model.density(pts.to(self.device))['sigma']
             return sigma
 
-        vertices, triangles = extract_geometry(self.model.aabb_infer[:3], self.model.aabb_infer[3:], resolution=resolution, threshold=threshold, query_func=query_func)
+        vertices, triangles = extract_geometry(self.model.aabb_infer[:3]*0.4, self.model.aabb_infer[3:]*0.4, resolution=resolution, threshold=threshold, query_func=query_func)
 
         mesh = trimesh.Trimesh(vertices, triangles, process=False) # important, process=True leads to seg fault...
         mesh.export(save_path)
 
         self.log(f"==> Finished saving mesh.")
 
+    def get_occupancy(self, resolution=256, threshold=10):
+        def query_func(pts):
+            with torch.no_grad():
+                with torch.cuda.amp.autocast(enabled=self.fp16):
+                    sigma = self.model.density(pts.to(self.device))['sigma']
+            return sigma
+
+        return extract_fields(self.model.aabb_infer[:3]*0.4, self.model.aabb_infer[3:]*0.4, resolution, query_func)
     ### ------------------------------
 
     def train(self, train_loader, valid_loader, max_epochs):
