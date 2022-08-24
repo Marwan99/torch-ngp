@@ -944,7 +944,7 @@ class Trainer(object):
         self.log(f"++> Evaluate epoch {self.epoch} Finished.")
 
     # def render_at(self, loader):
-    def render_at(self, rays, H, W):
+    def render_at(self, rays, H, W, plot=False):
 
         self.model.eval()
 
@@ -963,18 +963,21 @@ class Trainer(object):
                 pred_rgb = outputs['image'].reshape(1, H, W, 3)
                 pred_depth = outputs['depth'].reshape(1, H, W)
 
-                plt.subplots(figsize=(15, 12))
-                plt.tight_layout()
-                plt.subplot(221)
-                plt.title('pred')
-                pred = pred_rgb.reshape(H, W, 3).cpu().numpy()
-                plt.imshow(pred)
-                plt.subplot(222)
-                plt.title('depth')
-                depth = pred_depth.reshape(H, W).cpu().numpy()
-                # depth_ = depth2img(depth)
-                plt.imshow(depth)
-                plt.show()
+                if plot:
+                    plt.subplots(figsize=(15, 12))
+                    plt.tight_layout()
+                    plt.subplot(221)
+                    plt.title('pred')
+                    pred = pred_rgb.reshape(H, W, 3).cpu().numpy()
+                    plt.imshow(pred)
+                    plt.subplot(222)
+                    plt.title('depth')
+                    depth = pred_depth.reshape(H, W).cpu().numpy()
+                    # depth_ = depth2img(depth)
+                    plt.imshow(depth)
+                    plt.show()
+                
+                return pred_rgb, pred_depth
 
 
     def save_checkpoint(self, name=None, full=False, best=False, remove_old=True):
