@@ -530,7 +530,7 @@ class Trainer(object):
         return pred_rgb, pred_depth
 
 
-    def save_mesh(self, save_path=None, resolution=256, threshold=10):
+    def save_mesh(self, save_path=None, resolution=256, threshold=10, aabb=None):
 
         if save_path is None:
             save_path = os.path.join(self.workspace, 'meshes', f'{self.name}_{self.epoch}.ply')
@@ -545,21 +545,27 @@ class Trainer(object):
                     sigma = self.model.density(pts.to(self.device))['sigma']
             return sigma
 
-        vertices, triangles = extract_geometry(self.model.aabb_infer[:3]*0.4, self.model.aabb_infer[3:]*0.4, resolution=resolution, threshold=threshold, query_func=query_func)
+        if aabb is None:
+            aabb = self.model.aabb_infer[3:]*0.4
+
+        vertices, triangles = extract_geometry(aabb*-1, aabb, resolution=resolution, threshold=threshold, query_func=query_func)
 
         mesh = trimesh.Trimesh(vertices, triangles, process=False) # important, process=True leads to seg fault...
         mesh.export(save_path)
 
         self.log(f"==> Finished saving mesh.")
 
-    def get_occupancy(self, resolution=256, threshold=10):
+    def get_occupancy(self, aabb, resolution=256, threshold=10):
         def query_func(pts):
             with torch.no_grad():
                 with torch.cuda.amp.autocast(enabled=self.fp16):
                     sigma = self.model.density(pts.to(self.device))['sigma']
             return sigma
 
-        return extract_fields(self.model.aabb_infer[:3]*0.4, self.model.aabb_infer[3:]*0.4, resolution, query_func)
+        if aabb is None:
+            aabb = self.model.aabb_infer[3:]*0.4
+
+        return extract_fields(aabb*-1, aabb, resolution, query_func)
     ### ------------------------------
 
     def train(self, train_loader, valid_loader, max_epochs):
